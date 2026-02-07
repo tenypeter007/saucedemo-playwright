@@ -1,0 +1,112 @@
+name: Run New Tests
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  run-new-tests:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for git diff
+
+    # Step 2: Set up Node.js
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: npm ci
+
+    # Step 4: Install Playwright browsers
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    # Step 5: Identify new or modified test files
+    - name: Identify new or modified tests
+      id: find_tests
+      run: |
+        # Get the base branch (usually main or master)
+        BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+        
+        # Fetch the base branch
+        git fetch origin $BASE_BRANCH
+        
+        # Find new or modified test files
+        git diff --name-only origin/$BASE_BRANCH...${{ github.sha }} > changed_files.txt
+        
+        # Filter for test files (adjust pattern as needed)
+        grep -E 'tests/.*\.spec\.(ts|js)$' changed_files.txt > new_tests.txt || true
+        
+        # Check if any tests were found
+        if [ -s new_tests.txt ]; then
+          echo "Found new/modified tests:"
+          cat new_tests.txt
+          NEW_TESTS=$(cat new_tests.txt | tr '\n' ' ')
+          echo "new_tests=$NEW_TESTS" >> $GITHUB_OUTPUT
+          echo "has_tests=true" >> $GITHUB_OUTPUT
+        else
+          echo "No new/modified tests found"
+          echo "has_tests=false" >> $GITHUB_OUTPUT
+        fi
+
+    # Step 6: Run new or modified tests
+    - name: Run new tests
+      if: steps.find_tests.outputs.has_tests == 'true'
+      run: |
+        echo "Running tests: ${{ steps.find_tests.outputs.new_tests }}"
+        npx playwright test ${{ steps.find_tests.outputs.new_tests }}
+
+    # Step 7: Upload test results
+    - name: Upload test results
+      if: always() && steps.find_tests.outputs.has_tests == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+
+    # Step 8: Upload test artifacts (screenshots, videos)
+    - name: Upload test artifacts
+      if: always() && steps.find_tests.outputs.has_tests == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-artifacts
+        path: test-results/
+        retention-days: 30
+
+    # Step 9: Comment on PR with results
+    - name: Comment on PR
+      if: steps.find_tests.outputs.has_tests == 'true'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          let comment = '## 🧪 Test Execution Results\n\n';
+          
+          if (fs.existsSync('new_tests.txt')) {
+            const tests = fs.readFileSync('new_tests.txt', 'utf8').trim().split('\n');
+            comment += `**Tests executed:** ${tests.length}\n\n`;
+            comment += '**Test files:**\n';
+            tests.forEach(test => {
+              comment += `- \`${test}\`\n`;
+            });
+          }
+          
+          comment += '\n✅ Test execution completed. Check the workflow logs for details.';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
