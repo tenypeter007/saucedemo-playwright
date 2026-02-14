@@ -20,7 +20,7 @@ export abstract class BasePage {
     await this.page.waitForLoadState('networkidle')
   }
 
-  abstract validateDefaultLayout();
+  abstract validateDefaultLayout(): Promise<void>;
 
   validateViewportResize = async () => {
     for (let width = this.page.viewportSize()!.width; width >= 320; width -= 320) {

@@ -1,22 +1,22 @@
 export const testData = {
   validUser: {
-    username: 'testuser@example.com',
-    password: 'ValidPass123!'
+    username: 'standard_user',
+    password: 'secret_sauce'
   },
   invalidUser: {
-    username: 'invaliduser@example.com',
-    password: 'ValidPass123!'
+    username: 'invalid_user',
+    password: 'secret_sauce'
   },
   invalidPassword: {
-    username: 'testuser@example.com',
-    password: 'WrongPassword123!'
+    username: 'standard_user',
+    password: 'wrong_password'
   },
   emptyUsername: {
     username: '',
-    password: 'ValidPass123!'
+    password: 'secret_sauce'
   },
   emptyPassword: {
-    username: 'testuser@example.com',
+    username: 'standard_user',
     password: ''
   },
   bothEmpty: {
@@ -24,10 +24,10 @@ export const testData = {
     password: ''
   },
   passwordTest: {
-    password: 'TestPassword123'
+    password: 'secret_sauce'
   },
   rememberMeUser: {
-    username: 'testuser@example.com',
-    password: 'ValidPass123!'
+    username: 'standard_user',
+    password: 'secret_sauce'
   }
 };

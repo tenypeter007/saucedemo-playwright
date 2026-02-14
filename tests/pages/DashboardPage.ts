@@ -6,9 +6,9 @@ export class DashboardPage extends BasePage {
   private readonly dashboardTitle: Locator;
 
   constructor(page: Page) {
-    super(page);
-    this.userContent = page.locator('[data-testid="user-content"]');
-    this.dashboardTitle = page.locator('h1, [data-testid="dashboard-title"]');
+    super(page, '/inventory');
+    this.userContent = page.locator('[data-testid="inventory"], .inventory');
+    this.dashboardTitle = page.locator('.inventory_list, h1');
   }
 
   async waitForLoad(): Promise<void> {
@@ -26,6 +26,14 @@ export class DashboardPage extends BasePage {
 
   async isDashboardLoaded(): Promise<boolean> {
     const currentUrl = this.page.url();
-    return currentUrl.includes('/dashboard') || currentUrl.includes('/home');
+    return currentUrl.includes('/inventory');
+  }
+
+  async validateDefaultLayout(): Promise<void> {
+    await this.waitForLoad();
+    const isLoaded = await this.isDashboardLoaded();
+    if (!isLoaded) {
+      throw new Error('Dashboard is not loaded');
+    }
   }
 }
